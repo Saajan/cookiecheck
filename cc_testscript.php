@@ -1,6 +1,6 @@
 <?php
 
-/* CookieCheck - cctest
+/* CookieCheck - cc_testscript
  *
  * This is a simple test script for using CookieCheck
  *
