@@ -54,7 +54,7 @@ $test = cc_cookie_cutter();
 				<th>Name</th>
 				<th>Value</th>
 			</tr>
-
+	
 			<?php
 				foreach($_SERVER as $name => $value) {
 					echo '<tr>';
@@ -118,6 +118,24 @@ $test = cc_cookie_cutter();
 				}
 			?>
 		</table>
+
+		<h3>ENV Variables</h3>
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+
+			<?php
+				foreach($_ENV as $name => $value) {
+					echo '<tr>';
+					echo '<td>' . htmlspecialchars(strval($name)) . '</td>';
+					echo '<td>' . htmlspecialchars(strval($value)) . '</td>';
+					echo '</tr>';
+				}
+			?>
+		</table>
+
 
 
 	</body>
