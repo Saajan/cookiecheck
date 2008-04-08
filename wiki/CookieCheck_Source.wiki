@@ -81,7 +81,7 @@
 /* SETTINGS - May need modification */
 
 // CC_SESSION_PATH - directory to store temporary session data
-define('CC_SESSION_PATH', '~/tmp/cc_sessions');
+define('CC_SESSION_PATH', $_SERVER['DOCUMENT_ROOT'] . '/../tmp/cc_sessions');
 
 // CC_COOKIE_LIFE_DAYS - how many days a test is valid for; 0 for session only
 define('CC_COOKIE_LIFE_DAYS', (7));
