@@ -8,7 +8,12 @@
  * This script is designed to be easily included as part of an existing PHP
  * script. To use the script, simply include this file into your custom script
  * and run the command cc_cookie_cutter(). The return value of this function is
- * TRUE if cookies are enabled and FALSE if they are disabled.
+ * TRUE if cookies are enabled and FALSE if they are disabled. The script also
+ * sets the global value $CC_ERROR_MSG to something other than NULL if an error
+ * or warning was generated during the running of cc_cookie_cutter(). In the
+ * case where an error was generated, cc_cookie_cutter() will return FALSE. If a
+ * warning only was generated, cc_cookie_cutter() will return normally (i.e.
+ * TRUE if cookies are enabled and FALSE if cookies are disabled).
  *
  * All externally visible tokens are prefixed with 'cc_', 'CC_', 'cc-', 'CC-',
  * '_cc_' or '_CC_'. Please be aware that if your script uses those prefixes, 
@@ -30,23 +35,6 @@
  *  }
  *  // Execution only reaches this point if cookies are available
  *  ...
- *
- *
- * KNOWN ISSUES:
- *  [TBC (low priority)]
- *   If an error occurs, a warning message is printed directly to the screen.
- *    This can cause problems in terms of aesthetics, but also if the users
- *    script tries to send headers of its own after your script has run. Future
- *    modifications may use a mechanism to provide an error string for the
- *    calling script to use as desired.
- *
- *  [TBR (low priority)]
- *   The address displayed in the browser after this script has run includes the
- *    '?cc_code=cc-sessid-#######' query string. The global values are still 
- *    available as expected, however the display in the address bar doesn't look
- *    great, and it causes issues if the site is bookmarked from a page with the
- *    '?cc_code' query string.
- *
  *
  *
  * Written by Jath Palasubramaniam
@@ -91,6 +79,9 @@ define('CC_COOKIE_PATH', '/');
 // CC_PROTOCOL - protocol for client-server communication; http, https, etc
 define('CC_PROTOCOL', 'http');
 
+// CC_SESSION_ID_STEM - prefix to use with session ids for this script
+define('CC_SESSION_ID_STEM', 'cc-sessid-');
+
 
 
 
@@ -98,7 +89,7 @@ define('CC_PROTOCOL', 'http');
 /* SETTINGS - Unlikely to need modification */
 
 // CC_QUERY - variable name used in the GET query string for this script
-define('CC_QUERY', 'cc_code');
+define('CC_QUERY', 'cc_status');
 
 // CC_COOKIE - name of the test cookie sent by this script
 define('CC_COOKIE', 'cc_test');
@@ -106,11 +97,16 @@ define('CC_COOKIE', 'cc_test');
 // CC_SESSION_NAME - name of sessions used by this script
 define('CC_SESSION_NAME', 'cc_session');
 
-// CC_SESSION_ID_STEM - prefix to use with session ids for this script
-define('CC_SESSION_ID_STEM', 'cc-sessid-');
-
 // CC_SESSION_TIMEOUT - time in seconds before the test is aborted
-define('CC_SESSION_TIMEOUT', (120));
+define('CC_SESSION_TIMEOUT', (60));
+
+
+
+
+
+/* GLOBALS - Accessible after this page has been included */
+// $CC_ERROR_MSG - will be modified by cc_cookie_cutter() if an error occurs
+$CC_ERROR_MSG = NULL;
 
 
 
@@ -123,24 +119,49 @@ define('CC_SESSION_TIMEOUT', (120));
 //  Returns TRUE if cookies are enabled, FALSE if they are disabled
 function cc_cookie_cutter() {
 
+	// Declare $CC_ERROR_MSG to refer to the global variable
+	global $CC_ERROR_MSG;
+
 	if (isset($_COOKIE[CC_COOKIE])) {
 
 		// Cookies are enabled
 		if (isset($_GET[CC_QUERY])) {
-			// Restore globals as they were previously saved
-			$old_session_settings = _cc_save_session_settings();
+			// Reload the page using the initial query string
 			if (!_cc_initialise_session_settings()) {
-				echo 'CookieCheck Error: Unable to initialise session settings';
+				$CC_ERROR_MSG = 
+					'CookieCheck Error: Unable to initialise session settings';
 				return FALSE;
 			}
-			session_id($_GET[CC_QUERY]);
+			session_id(CC_SESSION_ID_STEM . $_GET[CC_QUERY]);
 			session_start();
-			_cc_restore_globals();
-			session_destroy();
-			if (!_cc_restore_session_settings($old_session_settings)) {
-				echo 'CookieCheck Warning: Unable to restore session settings';
-			}
-			// Continue on and return TRUE
+
+			// Get the initial query string and prepare it for appending
+			$qstring = $_SESSION['_SERVER']['QUERY_STRING'];
+			$qstring = ($qstring == '' ? '': '?') . $qstring;
+			// Get needed $_SERVER variables
+			$http_host = $_SESSION['_SERVER']['HTTP_HOST'];
+			$php_self = $_SESSION['_SERVER']['PHP_SELF'];
+			session_write_close();
+			// Reload the page, the session id will be propogated in the cookie
+			header('Location: ' . CC_PROTOCOL . '://' . $http_host . $php_self .
+				$qstring);
+			exit();
+			// Do not continue; rather exit and reload the page
+		}
+		// Restore any globals that are saved
+		$old_session_settings = _cc_save_session_settings();
+		if (!_cc_initialise_session_settings()) {
+			$CC_ERROR_MSG = 
+				'CookieCheck Error: Unable to initialise session settings';
+			return FALSE;
+		}
+		session_id(CC_SESSION_ID_STEM . strval($_COOKIE[CC_COOKIE]));
+		session_start();
+		_cc_restore_globals();
+		session_destroy();
+		if (!_cc_restore_session_settings($old_session_settings)) {
+			$CC_ERROR_MSG = 
+				'CookieCheck Warning: Unable to restore session settings';
 		}
 
 		return TRUE;
@@ -152,36 +173,41 @@ function cc_cookie_cutter() {
 			// Restore globals as they were previously sent
 			$old_session_settings = _cc_save_session_settings();
 			if (!_cc_initialise_session_settings()) {
-				echo 'CookieCheck Error: Unable to initialise session settings';
+				$CC_ERROR_MSG = 
+					'CookieCheck Error: Unable to initialise session settings';
 				return FALSE;
 			}
-			session_id($_GET[CC_QUERY]);
+			session_id(CC_SESSION_ID_STEM . strval($_GET[CC_QUERY]));
 			session_start();
 			_cc_restore_globals();
 			session_destroy();
 			if (!_cc_restore_session_settings($old_session_settings)) {
-				echo 'CookieCheck Warning: Unable to restore session settings';
+				$CC_ERROR_MSG =
+					'CookieCheck Warning: Unable to restore session settings';
 			}
 			// Continue on and return FALSE as cookies are disabled
 		} else {
 			// Save globals as we are going to reload this page
-			$old_session_settings = _cc_save_session_settings();
 			if (!_cc_initialise_session_settings()) {
-				echo 'CookieCheck Error: Unable to initialise session settings';
+				$CC_ERROR_MSG = 
+					'CookieCheck Error: Unable to initialise session settings';
 				return FALSE;
 			}
-			session_id(CC_SESSION_ID_STEM . strval(mt_rand()));
+			$session_id = strval(mt_rand());
+			session_id(CC_SESSION_ID_STEM . $session_id);
 			session_start();
 			_cc_save_globals();
 			session_write_close();
-			if (!_cc_restore_session_settings($old_session_settings)) {
-				echo 'CookieCheck Warning: Unable to restore session settings';
-			}
+
+			// Append the session id to the end of the existing query string
+			$qstring = $_SERVER['QUERY_STRING'] . 
+				($_SERVER['QUERY_STRING'] == '' ? '' : '&') . CC_QUERY . '=' .
+				$session_id;
 			// Send a test cookie
-			setcookie(CC_COOKIE, 'true', 
+			setcookie(CC_COOKIE, $session_id, 
 				(time() + CC_COOKIE_LIFE_DAYS * 24 * 60 * 60), CC_COOKIE_PATH);
 			header('Location: ' . CC_PROTOCOL . '://' . $_SERVER['HTTP_HOST'] . 
-				$_SERVER['PHP_SELF'] . '?' . CC_QUERY . '=' . session_id());
+				$_SERVER['PHP_SELF'] . '?' . $qstring);
 			exit();
 			// Do not continue; rather exit and reload the page
 		}
@@ -294,7 +320,13 @@ function _cc_restore_session_settings($old_session_settings) {
 //  Returns no value
 function _cc_save_globals() {
 
-	$_SESSION['_SESSION'] = $_SESSION;
+	// Serialize and save each of the super globals
+	// $GLOBALS is not saved in this manner as it seems to dynamically reference
+	//  each of the other super globals anyway
+	// Explicitly saving or restoring $GLOBALS causes some sort of error, though
+	//  I can't figure out exactly what it is
+	// Suffice to say, $GLOBALS works as expected without explicitly doing
+	//  anything to save or restore it (I think)
 	$_SESSION['_FILES'] = $_FILES;
 	$_SESSION['_SERVER'] = $_SERVER;
 	$_SESSION['_ENV'] = $_ENV;
@@ -302,7 +334,8 @@ function _cc_save_globals() {
 	$_SESSION['_GET'] = $_GET;
 	$_SESSION['_POST'] = $_POST;
 	$_SESSION['_REQUEST'] = $_REQUEST;
-	$_SESSION['GLOBALS'] = $GLOBALS;
+	// Set a flag to signify that we are storing the globals to a fresh session
+	$_SESSION['cc_flag'] = TRUE;
 
 	return;
 
@@ -314,15 +347,33 @@ function _cc_save_globals() {
 //  Returns no value
 function _cc_restore_globals() {
 
-	$_FILES = $_SESSION['_FILES'];
-	$_SERVER = $_SESSION['_SERVER'];
-	$_ENV = $_SESSION['_ENV'];
-	$_COOKIE = $_SESSION['_COOKIE'];
-	$_GET = $_SESSION['_GET'];
-	$_POST = $_SESSION['_POST'];
-	$_REQUEST = $_SESSION['_REQUEST'];
-	$GLOBALS = $_SESSION['GLOBALS'];
-	$_SESSION = $_SESSION['_SESSION'];
+	// Only restore the globals if we have freshly saved them
+	if (isset($_SESSION['cc_flag'])) {
+		// Unserialize and restore the super globals removing them from the 
+		//  session variable once done
+		// $GLOBALS is not restored in this manner as it seems to dynamically
+		//  reference each of the other super globals anyway
+		// Explicitly saving or restoring $GLOBALS causes some sort of error,
+		//  though I can't figure out exactly what it is
+		// Suffice to say, $GLOBALS works as expected without explicitly doing
+		//  anything to save or restore it (I think)
+		$_FILES = $_SESSION['_FILES'];
+		unset($_SESSION['_FILES']);
+		$_SERVER = $_SESSION['_SERVER'];
+		unset($_SESSION['_SERVER']);
+		$_ENV = $_SESSION['_ENV'];
+		unset($_SESSION['_ENV']);
+		$_COOKIE = $_SESSION['_COOKIE'];
+		unset($_SESSION['_COOKIE']);
+		$_GET = $_SESSION['_GET'];
+		unset($_SESSION['_GET']);
+		$_POST = $_SESSION['_POST'];
+		unset($_SESSION['_POST']);
+		$_REQUEST = $_SESSION['_REQUEST'];
+		unset($_SESSION['_REQUEST']);
+		// Remove the flag that identified the session information as fresh
+		unset($_SESSION['cc_flag']);
+	}
 
 	return;
 

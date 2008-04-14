@@ -136,6 +136,75 @@ $test = cc_cookie_cutter();
 			?>
 		</table>
 
+		<h3>FILES Variables</h3>
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+
+			<?php
+				foreach($_FILES as $name => $value) {
+					echo '<tr>';
+					echo '<td>' . htmlspecialchars(strval($name)) . '</td>';
+					echo '<td>' . htmlspecialchars(strval($value)) . '</td>';
+					echo '</tr>';
+				}
+			?>
+		</table>
+
+		<h3>REQUEST Variables</h3>
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+
+			<?php
+				foreach($_REQUEST as $name => $value) {
+					echo '<tr>';
+					echo '<td>' . htmlspecialchars(strval($name)) . '</td>';
+					echo '<td>' . htmlspecialchars(strval($value)) . '</td>';
+					echo '</tr>';
+				}
+			?>
+		</table>
+
+		<h3>SESSION Variables</h3>
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+
+			<?php
+				foreach($_SESSION as $name => $value) {
+					echo '<tr>';
+					echo '<td>' . htmlspecialchars(strval($name)) . '</td>';
+					echo '<td>' . htmlspecialchars(strval($value)) . '</td>';
+					echo '</tr>';
+				}
+			?>
+		</table>
+
+		<h3>GLOBALS Variables</h3>
+		<table>
+			<tr>
+				<th>Name</th>
+				<th>Value</th>
+			</tr>
+
+			<?php
+				foreach($GLOBALS as $name => $value) {
+					echo '<tr>';
+					echo '<td>' . htmlspecialchars(strval($name)) . '</td>';
+					echo '<td>' . htmlspecialchars(strval($value)) . '</td>';
+					echo '</tr>';
+				}
+			?>
+		</table>
+
+
 
 
 	</body>
