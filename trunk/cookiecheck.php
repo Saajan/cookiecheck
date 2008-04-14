@@ -11,8 +11,8 @@
  * TRUE if cookies are enabled and FALSE if they are disabled.
  *
  * All externally visible tokens are prefixed with 'cc_', 'CC_', 'cc-', 'CC-',
- * '_cc_', '_CC_', '_cc-' or '_CC-'. Please be aware that if your script uses
- * those prefixes, naming conflicts could potentially arise.
+ * '_cc_' or '_CC_'. Please be aware that if your script uses those prefixes, 
+ * naming conflicts could potentially arise.
  *
  * This script sends headers as part of its logic. This means that this script
  * needs to be included and the cc_cookie_cutter() function called before any
@@ -33,8 +33,12 @@
  *
  *
  * KNOWN ISSUES:
- *  [TBD (medium priority)]
- *   Not all functions return values are error checked.
+ *  [TBC (low priority)]
+ *   If an error occurs, a warning message is printed directly to the screen.
+ *    This can cause problems in terms of aesthetics, but also if the users
+ *    script tries to send headers of its own after your script has run. Future
+ *    modifications may use a mechanism to provide an error string for the
+ *    calling script to use as desired.
  *
  *  [TBR (low priority)]
  *   The address displayed in the browser after this script has run includes the
@@ -123,15 +127,19 @@ function cc_cookie_cutter() {
 
 		// Cookies are enabled
 		if (isset($_GET[CC_QUERY])) {
-			// TODO: Error checking function returns
 			// Restore globals as they were previously saved
 			$old_session_settings = _cc_save_session_settings();
-			_cc_initialise_session_settings();
+			if (!_cc_initialise_session_settings()) {
+				echo 'CookieCheck Error: Unable to initialise session settings';
+				return FALSE;
+			}
 			session_id($_GET[CC_QUERY]);
 			session_start();
 			_cc_restore_globals();
 			session_destroy();
-			_cc_restore_session_settings($old_session_settings);
+			if (!_cc_restore_session_settings($old_session_settings)) {
+				echo 'CookieCheck Warning: Unable to restore session settings';
+			}
 			// Continue on and return TRUE
 		}
 
@@ -141,26 +149,34 @@ function cc_cookie_cutter() {
 
 		// Cookies are either disabled or not yet tested for
 		if (isset($_GET[CC_QUERY])) {
-			// TODO: Error checking function returns
 			// Restore globals as they were previously sent
 			$old_session_settings = _cc_save_session_settings();
-			_cc_initialise_session_settings();
+			if (!_cc_initialise_session_settings()) {
+				echo 'CookieCheck Error: Unable to initialise session settings';
+				return FALSE;
+			}
 			session_id($_GET[CC_QUERY]);
 			session_start();
 			_cc_restore_globals();
 			session_destroy();
-			_cc_restore_session_settings($old_session_settings);
+			if (!_cc_restore_session_settings($old_session_settings)) {
+				echo 'CookieCheck Warning: Unable to restore session settings';
+			}
 			// Continue on and return FALSE as cookies are disabled
 		} else {
-			// TODO: Error checking function returns
 			// Save globals as we are going to reload this page
 			$old_session_settings = _cc_save_session_settings();
-			_cc_initialise_session_settings();
+			if (!_cc_initialise_session_settings()) {
+				echo 'CookieCheck Error: Unable to initialise session settings';
+				return FALSE;
+			}
 			session_id(CC_SESSION_ID_STEM . strval(mt_rand()));
 			session_start();
 			_cc_save_globals();
 			session_write_close();
-			_cc_restore_session_settings($old_session_settings);
+			if (!_cc_restore_session_settings($old_session_settings)) {
+				echo 'CookieCheck Warning: Unable to restore session settings';
+			}
 			// Send a test cookie
 			setcookie(CC_COOKIE, 'true', 
 				(time() + CC_COOKIE_LIFE_DAYS * 24 * 60 * 60), CC_COOKIE_PATH);
