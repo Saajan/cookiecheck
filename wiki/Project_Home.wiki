@@ -1,4 +1,4 @@
-#summary Project Home
+#summary Project Home (Copy)
 #labels Deprecated
 
 _*!CookieCheck* is a simple PHP script to check whether visitors to your site have cookies enabled or not. Nothing about this project is likely to win a Turing Award anytime soon, but hey; it's simple, it works. and it saves you having to reinvent the wheel for each of your scripts that rely on cookies. And who knows, maybe one day a Turing Award recipient will be on the podium thanking !CookieCheck for making it all possible! Don't worry, I  won't hold my breath..._ 
