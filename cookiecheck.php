@@ -41,6 +41,9 @@
  *
  * Copyright 2008 Laden Donkey Studios. All rights reserved.
  *
+ * This software is released under the terms of the MIT open source licence as
+ * specified below:
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -68,6 +71,9 @@
 /* SETTINGS - May need modification */
 
 // CC_SESSION_PATH - directory to store temporary session data
+//  The parent directory of the session save path should exist and be writeable
+//  In the below example, a folder named '/[http_root]/../tmp' should exist and 
+//   be writeable
 define('CC_SESSION_PATH', $_SERVER['DOCUMENT_ROOT'] . '/../tmp/cc_sessions');
 
 // CC_COOKIE_LIFE_DAYS - how many days a test is valid for; 0 for session only
@@ -78,11 +84,6 @@ define('CC_COOKIE_PATH', '/');
 
 // CC_PROTOCOL - protocol for client-server communication; http, https, etc
 define('CC_PROTOCOL', 'http');
-
-// CC_SESSION_ID_STEM - prefix to use with session ids for this script
-define('CC_SESSION_ID_STEM', 'cc-sessid-');
-
-
 
 
 
@@ -100,15 +101,8 @@ define('CC_SESSION_NAME', 'cc_session');
 // CC_SESSION_TIMEOUT - time in seconds before the test is aborted
 define('CC_SESSION_TIMEOUT', (60));
 
-
-
-
-
-/* GLOBALS - Accessible after this page has been included */
-// $CC_ERROR_MSG - will be modified by cc_cookie_cutter() if an error occurs
-$CC_ERROR_MSG = NULL;
-
-
+// CC_SESSION_ID_STEM - prefix to use with session ids for this script
+define('CC_SESSION_ID_STEM', 'cc-sessid-');
 
 
 
@@ -119,22 +113,17 @@ $CC_ERROR_MSG = NULL;
 //  Returns TRUE if cookies are enabled, FALSE if they are disabled
 function cc_cookie_cutter() {
 
-	// Declare $CC_ERROR_MSG to refer to the global variable
-	global $CC_ERROR_MSG;
-
 	if (isset($_COOKIE[CC_COOKIE])) {
 
 		// Cookies are enabled
 		if (isset($_GET[CC_QUERY])) {
 			// Reload the page using the initial query string
 			if (!_cc_initialise_session_settings()) {
-				$CC_ERROR_MSG = 
-					'CookieCheck Error: Unable to initialise session settings';
-				return FALSE;
+				throw new Exception('CookieCheck Error: Unable to initialise ' .
+				  'session settings');
 			}
 			session_id(CC_SESSION_ID_STEM . $_GET[CC_QUERY]);
 			session_start();
-
 			// Get the initial query string and prepare it for appending
 			$qstring = $_SESSION['_SERVER']['QUERY_STRING'];
 			$qstring = ($qstring == '' ? '': '?') . $qstring;
@@ -151,17 +140,16 @@ function cc_cookie_cutter() {
 		// Restore any globals that are saved
 		$old_session_settings = _cc_save_session_settings();
 		if (!_cc_initialise_session_settings()) {
-			$CC_ERROR_MSG = 
-				'CookieCheck Error: Unable to initialise session settings';
-			return FALSE;
+			throw new Exception('CookieCheck Error: Unable to initialise ' .
+			  'session settings');
 		}
 		session_id(CC_SESSION_ID_STEM . strval($_COOKIE[CC_COOKIE]));
 		session_start();
 		_cc_restore_globals();
 		session_destroy();
 		if (!_cc_restore_session_settings($old_session_settings)) {
-			$CC_ERROR_MSG = 
-				'CookieCheck Warning: Unable to restore session settings';
+			throw new Exception('CookieCheck Warning: Unable to restore ' .
+			  'session settings');
 		}
 
 		return TRUE;
@@ -173,25 +161,23 @@ function cc_cookie_cutter() {
 			// Restore globals as they were previously sent
 			$old_session_settings = _cc_save_session_settings();
 			if (!_cc_initialise_session_settings()) {
-				$CC_ERROR_MSG = 
-					'CookieCheck Error: Unable to initialise session settings';
-				return FALSE;
+				throw new Exception('CookieCheck Error: Unable to initialise ' .
+				  'session settings');
 			}
 			session_id(CC_SESSION_ID_STEM . strval($_GET[CC_QUERY]));
 			session_start();
 			_cc_restore_globals();
 			session_destroy();
 			if (!_cc_restore_session_settings($old_session_settings)) {
-				$CC_ERROR_MSG =
-					'CookieCheck Warning: Unable to restore session settings';
+				throw new Exception('CookieCheck Warning: Unable to restore ' .
+				  'session settings');
 			}
 			// Continue on and return FALSE as cookies are disabled
 		} else {
 			// Save globals as we are going to reload this page
 			if (!_cc_initialise_session_settings()) {
-				$CC_ERROR_MSG = 
-					'CookieCheck Error: Unable to initialise session settings';
-				return FALSE;
+				throw new Exception('CookieCheck Error: Unable to initialise ' .
+				  'session settings');
 			}
 			$session_id = strval(mt_rand());
 			session_id(CC_SESSION_ID_STEM . $session_id);
@@ -234,7 +220,7 @@ function _cc_initialise_session_settings() {
 	session_save_path(session_save_path() . CC_SESSION_PATH);
 	$session_save_path = session_save_path();
 	if (!file_exists($session_save_path)) {
-		if (!mkdir($session_save_path, 0755, TRUE)) {
+		if (!mkdir($session_save_path, 0755)) {
 			session_save_path($old_session_save_path);
 			return FALSE;
 		}
@@ -349,8 +335,8 @@ function _cc_restore_globals() {
 
 	// Only restore the globals if we have freshly saved them
 	if (isset($_SESSION['cc_flag'])) {
-		// Unserialize and restore the super globals removing them from the 
-		//  session variable once done
+		// Restore the super globals removing them from the session variable 
+		//  once done
 		// $GLOBALS is not restored in this manner as it seems to dynamically
 		//  reference each of the other super globals anyway
 		// Explicitly saving or restoring $GLOBALS causes some sort of error,
