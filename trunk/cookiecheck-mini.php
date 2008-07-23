@@ -1,43 +1,60 @@
 <?php
 
-/* CookieCheck
+/* CookieCheck - cookiecheck-mini.php
  *
- * This script provides a function for checking whether or not a visitor
- * accessing one of your PHP scripts has cookies enabled.
+ * A basic PHP script to check whether or not visitors to a web page have 
+ * cookies enabled or not.
  *
- * This script is designed to be easily included as part of an existing PHP
- * script. To use the script, simply include this file into your custom script
- * and run the command cc_cookie_cutter(). The return value of this function is
- * TRUE if cookies are enabled and FALSE if they are disabled. The script also
- * sets the global value $CC_ERROR_MSG to something other than NULL if an error
- * or warning was generated during the running of cc_cookie_cutter(). In the
- * case where an error was generated, cc_cookie_cutter() will return FALSE. If a
- * warning only was generated, cc_cookie_cutter() will return normally (i.e.
- * TRUE if cookies are enabled and FALSE if cookies are disabled).
+ * This script provides a single function, CookieCheck(), which simply returns
+ * TRUE or FALSE to reflect whether or not cookies are available.
  *
- * All externally visible tokens are prefixed with 'cc_', 'CC_', 'cc-', 'CC-',
- * '_cc_' or '_CC_'. Please be aware that if your script uses those prefixes, 
- * naming conflicts could potentially arise.
+ * The mini version of this function is partly simplified such that it discards
+ * any information passed into the script via POST methods. After the function
+ * returns to the user, any POST data specified by the visitor will no longer be
+ * available for use. This version of CookieCheck is designed for pages that do
+ * not expect any of this data. If you do need to use POST data, then consider 
+ * using the standard version of this script. The benefit of this script over 
+ * the standard and mini versions is that it is partway between those two, being
+ * smaller and slightly faster than the standard version, and more functional
+ * than the nano version (though all three versions are fairly small and should 
+ * run fairly quickly).
+ *
+ * The CookieCheck function is designed to be easily included as part of an
+ * existing PHP script. Simple include the file cookiecheck-mini.php and then
+ * call CookieCheck() when you want to test for cookies. This function will
+ * reload the page (potentially twice), and eventually return with a value of
+ * either TRUE or FALSE depending on the availability of cookies. After running,
+ * the global variables set by the server will be altered (in particular, there
+ * will be no POST data, though the GET data should still be available and the
+ * original query string should be available).
+ *
+ * Any errors raised by this function are returned to the caller via exceptions.
+ *
+ * All externally visible tokens (with the exception of the main CookieCheck()
+ * funcion) are prefixed with 'cc_', 'CC_', 'cc-', 'CC-', '_cc_' or '_CC_'. 
+ * Please be aware that if your script uses those prefixes, naming conflicts 
+ * could potentially arise.
  *
  * This script sends headers as part of its logic. This means that this script
- * needs to be included and the cc_cookie_cutter() function called before any
+ * needs to be included and the CookieCheck() function called before any
  * output (including whitespace) is sent. This may necessitate the use of PHP's
  * output control functions (ob_start, ob_flush, ob_end_flush, etc).
  *
  *
  * EXAMPLE USAGE:
  *  ...
- *  include_once(cookiecheck.php);
- *  $cookies_enabled = cc_cookie_cutter();
- *  if (!$cookies_enabled) {
- *      // Code to display a warning that cookies are unavailable
+ *  include_once(cookiecheck-mini.php);
+ *  if (CookieCheck()) {
+ *		// Code to execute if cookies are enabled.
+ *		...
+ *	} else {
+ *		// Code to exectue if cookies are not enabled.
  *      ...
  *  }
- *  // Execution only reaches this point if cookies are available
  *  ...
  *
  *
- * Written by Jath Palasubramaniam
+ * Written by Jath Palasubramaniam  ( jathpala <at> gmail <dot> com )
  *
  * Copyright 2008 Laden Donkey Studios. All rights reserved.
  *
@@ -61,8 +78,11 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
  */
+
+// Include the configuration script
+require_once('cookiecheck-config.php');
+
 
 
 
@@ -108,7 +128,7 @@ define('CC_SESSION_ID_STEM', 'cc-sessid-');
 
 /* FUNCTIONS - Public */
 
-// cc_cookie_cutter - run a test to see whether cookies are enabled or not
+// CookieCheck() - run a test to see whether cookies are enabled or not
 // 	Takes no arguments
 //  Returns TRUE if cookies are enabled, FALSE if they are disabled
 function CookieCheck() {
@@ -118,19 +138,12 @@ function CookieCheck() {
 		// Cookies are enabled
 		if (isset($_GET[CC_QUERY])) {
 			// Reload the page using the initial query string
-			if (!_cc_initialise_session_settings()) {
-				throw new Exception('CookieCheck Error: Unable to initialise ' .
-				  'session settings');
-			}
-			session_id(CC_SESSION_ID_STEM . $_GET[CC_QUERY]);
-			session_start();
 			// Get the initial query string and prepare it for appending
 			$qstring = $_SESSION['_SERVER']['QUERY_STRING'];
 			$qstring = ($qstring == '' ? '': '?') . $qstring;
 			// Get needed $_SERVER variables
 			$http_host = $_SESSION['_SERVER']['HTTP_HOST'];
 			$php_self = $_SESSION['_SERVER']['PHP_SELF'];
-			session_write_close();
 			// Reload the page, the session id will be propogated in the cookie
 			header('Location: ' . CC_PROTOCOL . '://' . $http_host . $php_self .
 				$qstring);
