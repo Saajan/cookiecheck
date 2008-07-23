@@ -52,7 +52,7 @@
  *  ...
  *
  *
- * Written by Jath Palasubramaniam
+ * Written by Jath Palasubramaniam  ( jathpala <at> gmail <dot> com )
  *
  * Copyright 2008 Laden Donkey Studios. All rights reserved.
  *
@@ -76,25 +76,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
- *
  */
 
-/* SETTINGS */
-// CC_COOKIE_LIFE_DAYS - how many days a test is valid for; 0 for session only
-define('CC_COOKIE_LIFE_DAYS', (7));
-
-// CC_COOKIE_PATH - path on your site that the test is valid for; / means all
-define('CC_COOKIE_PATH', '/');
-
-// CC_PROTOCOL - protocol for client-server communication; http, https, etc
-define('CC_PROTOCOL', 'http');
-
-// CC_NAME - variable name used as the GET query string and cookie name
-// (This setting is unlikely to need modification)
-define('CC_NAME', 'CookieCheck');
+// Include the configuration script
+require_once('cookiecheck-config.php');
 
 
-/* FUNCTIONS */
 // CookieCheck() - run a test to see whether cookies are enabled or not
 // 	Takes no arguments
 //  Returns TRUE if cookies are enabled, FALSE if they are disabled
